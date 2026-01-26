@@ -193,7 +193,7 @@ When using this image with ARC, you **must** configure the following in your ARC
 
 - **Automatic Detection**: The entrypoint script automatically detects ARC environment and skips manual configuration
 - **Container Jobs**: For workflows using container jobs, ARC's `kubernetes` mode will run them as separate pods
-- **Privileged Access**: Podman-in-Podman requires privileged containers, which has security implications. Evaluate your security requirements.
+- **Privileged Access**: Podman-in-Podman requires privileged containers
 - **Storage**: Podman storage is ephemeral by default. Use PersistentVolumeClaims if you need persistent storage across pod restarts.
 
 ### Testing Podman in ARC Runners
