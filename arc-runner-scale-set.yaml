@@ -1,0 +1,73 @@
+apiVersion: actions.summerwind.dev/v1alpha1
+kind: RunnerScaleSet
+metadata:
+  name: podman-runner-scale-set
+  namespace: actions-runner-system  # Adjust to your ARC namespace
+spec:
+  maxRunners: 10
+  minRunners: 1
+  
+  # Runner template
+  template:
+    spec:
+      # Use your built image
+      image: your-registry/github-actions-runner:latest
+      
+      # Required for Podman-in-Podman
+      securityContext:
+        privileged: true
+        runAsUser: 0  # Run as root for privileged mode
+        # Privileged mode grants all capabilities needed for podman-in-podman
+        # This includes: SYS_ADMIN, CHOWN, FOWNER, MKNOD, NET_ADMIN, etc.
+      
+      # Mount /dev/fuse for fuse-overlayfs (required for Podman)
+      # Note: ARC automatically mounts the GitHub Actions workspace
+      # The workspace is accessible at $GITHUB_WORKSPACE and can be mounted
+      # into inner containers using: podman run -v $GITHUB_WORKSPACE:/workspace:Z
+      volumes:
+        - name: dev-fuse
+          hostPath:
+            path: /dev/fuse
+            type: CharDevice
+        - name: podman-storage
+          emptyDir: {}
+          # For persistent storage across pod restarts, use:
+          # persistentVolumeClaim:
+          #   claimName: podman-storage-pvc
+      
+      volumeMounts:
+        - name: dev-fuse
+          mountPath: /dev/fuse
+        - name: podman-storage
+          mountPath: /home/runner/.local/share/containers
+      
+      # Repository or organization configuration
+      # For repository:
+      repository: your-org/your-repo
+      # For organization:
+      # organization: your-org
+      
+      # Optional: Labels for runner selection
+      labels:
+        - podman
+        - linux
+        - self-hosted
+      
+      # Optional: Runner group
+      # runnerGroup: default
+      
+      # Environment variables for Podman-in-Podman
+      env:
+        - name: PODMAN_USERNS
+          value: "keep-id"
+        - name: _CONTAINERS_USERNS_CONFIGURED
+          value: "true"
+        # SELinux: Privileged mode disables SELinux, but set these for compatibility
+        - name: _CONTAINERS_ROOTLESS_UID
+          value: "0"
+        - name: _CONTAINERS_ROOTLESS_GID
+          value: "0"
+  
+  # GitHub configuration (via GitHub App or PAT)
+  # This is typically configured via ARC's GitHubApp or GitHubConfig
+  # See ARC documentation for authentication setup

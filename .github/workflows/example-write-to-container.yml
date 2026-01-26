@@ -1,0 +1,90 @@
+name: Example Writing to Inner Containers
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  write-to-container:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Write files to container using volume mount
+        run: |
+          # Create a file in the workspace
+          echo "Hello from GitHub Actions!" > workspace-file.txt
+          echo "This file will be available in the container" >> workspace-file.txt
+          
+          # Run container with volume mount from workspace
+          # The $GITHUB_WORKSPACE is the default working directory
+          podman run --rm \
+            -v $GITHUB_WORKSPACE:/workspace:Z \
+            alpine:latest \
+            sh -c "cat /workspace/workspace-file.txt && echo 'File read successfully!'"
+      
+      - name: Write files inside running container
+        run: |
+          # Start a container and write files to it
+          podman run -d --name test-container alpine:latest sleep 300
+          
+          # Write a file to the running container
+          echo "Content written from host" | podman exec -i test-container sh -c "cat > /tmp/written-file.txt"
+          
+          # Verify the file was written
+          podman exec test-container cat /tmp/written-file.txt
+          
+          # Cleanup
+          podman stop test-container
+          podman rm test-container
+      
+      - name: Build image with files from workspace
+        run: |
+          # Create a simple application file
+          cat > app.txt <<EOF
+          Application Data
+          Version: 1.0.0
+          Built: $(date)
+          EOF
+          
+          # Build container image that includes workspace files
+          cat > Dockerfile <<EOF
+          FROM alpine:latest
+          COPY app.txt /app/app.txt
+          RUN echo "File copied during build" && cat /app/app.txt
+          EOF
+          
+          podman build -t my-app:latest .
+      
+      - name: Copy files from workspace to container filesystem
+        run: |
+          # Create a file in workspace
+          echo "Data to copy" > data.txt
+          
+          # Copy file into a new container
+          podman run --rm \
+            -v $GITHUB_WORKSPACE:/source:Z,ro \
+            alpine:latest \
+            sh -c "cp /source/data.txt /tmp/copied-data.txt && cat /tmp/copied-data.txt"
+      
+      - name: Write to container with persistent volume
+        run: |
+          # Create a volume for persistent storage
+          podman volume create test-volume
+          
+          # Write to volume via container
+          podman run --rm \
+            -v test-volume:/data:Z \
+            alpine:latest \
+            sh -c "echo 'Persistent data' > /data/persistent.txt && cat /data/persistent.txt"
+          
+          # Read from volume in another container
+          podman run --rm \
+            -v test-volume:/data:Z,ro \
+            alpine:latest \
+            cat /data/persistent.txt
+          
+          # Cleanup
+          podman volume rm test-volume

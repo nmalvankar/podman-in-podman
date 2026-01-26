@@ -1,0 +1,35 @@
+name: Example Podman Workflow
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-container:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Build container image with Podman
+        run: |
+          podman build -t my-app:latest .
+      
+      - name: Test container
+        run: |
+          podman run --rm my-app:latest echo "Container works!"
+      
+      - name: Write to container from workspace
+        run: |
+          # Example: Mount workspace and write files
+          echo "Test data" > test.txt
+          podman run --rm \
+            -v $GITHUB_WORKSPACE:/workspace:Z \
+            alpine:latest \
+            sh -c "cat /workspace/test.txt"
+      
+      - name: List images
+        run: |
+          podman images

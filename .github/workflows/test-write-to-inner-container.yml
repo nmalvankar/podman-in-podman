@@ -1,0 +1,166 @@
+name: Test Writing to Inner Containers (Podman-in-Podman)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-writes:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Verify Podman is working
+        run: |
+          podman --version
+          podman info
+      
+      - name: Test 1 - Write to inner container via volume mount (workspace)
+        run: |
+          # Create file in workspace
+          echo "Original content" > test-write.txt
+          
+          # Mount workspace into inner container and WRITE to it
+          podman run --rm \
+            -v $GITHUB_WORKSPACE:/workspace:Z \
+            alpine:latest \
+            sh -c "echo 'Written from inner container!' >> /workspace/test-write.txt"
+          
+          # Verify write worked - file should now contain both lines
+          echo "=== File contents after write ==="
+          cat test-write.txt
+          
+          # Verify it contains the new content
+          if grep -q "Written from inner container" test-write.txt; then
+            echo "✅ SUCCESS: Write to workspace via volume mount works!"
+          else
+            echo "❌ FAILED: Write did not work"
+            exit 1
+          fi
+      
+      - name: Test 2 - Write to inner container filesystem
+        run: |
+          # Start a container
+          podman run -d --name write-test alpine:latest sleep 60
+          
+          # Write file to container's filesystem
+          echo "Data written to container" | podman exec -i write-test sh -c "cat > /tmp/container-file.txt"
+          
+          # Verify write
+          podman exec write-test cat /tmp/container-file.txt
+          
+          # Write another file
+          podman exec write-test sh -c "echo 'Second write' > /tmp/second-file.txt"
+          podman exec write-test cat /tmp/second-file.txt
+          
+          echo "✅ SUCCESS: Write to container filesystem works!"
+          
+          # Cleanup
+          podman stop write-test
+          podman rm write-test
+      
+      - name: Test 3 - Write to Podman volume
+        run: |
+          # Create volume
+          podman volume create write-test-volume
+          
+          # Write to volume via container
+          podman run --rm \
+            -v write-test-volume:/data:Z \
+            alpine:latest \
+            sh -c "echo 'Volume write test' > /data/volume-file.txt && ls -la /data/"
+          
+          # Read from volume
+          podman run --rm \
+            -v write-test-volume:/data:Z,ro \
+            alpine:latest \
+            cat /data/volume-file.txt
+          
+          echo "✅ SUCCESS: Write to Podman volume works!"
+          
+          # Cleanup
+          podman volume rm write-test-volume
+      
+      - name: Test 4 - Build image with writes during build
+        run: |
+          # Create Dockerfile that writes files
+          cat > Dockerfile <<EOF
+          FROM alpine:latest
+          RUN echo "File created during build" > /app/build-file.txt
+          RUN echo "Another file" > /app/second-file.txt
+          RUN ls -la /app/
+          CMD ["cat", "/app/build-file.txt"]
+          EOF
+          
+          # Build image
+          podman build -t write-test-image:latest .
+          
+          # Run and verify files exist
+          podman run --rm write-test-image:latest cat /app/build-file.txt
+          podman run --rm write-test-image:latest cat /app/second-file.txt
+          
+          echo "✅ SUCCESS: Writes during image build work!"
+      
+      - name: Test 5 - Write to mounted directory in inner container
+        run: |
+          # Create directory in workspace
+          mkdir -p container-data
+          echo "Initial" > container-data/initial.txt
+          
+          # Mount directory and write multiple files
+          podman run --rm \
+            -v $GITHUB_WORKSPACE/container-data:/data:Z \
+            alpine:latest \
+            sh -c "
+              echo 'File 1' > /data/file1.txt
+              echo 'File 2' > /data/file2.txt
+              echo 'Modified' >> /data/initial.txt
+              ls -la /data/
+            "
+          
+          # Verify files exist in workspace
+          echo "=== Files in workspace ==="
+          ls -la container-data/
+          cat container-data/file1.txt
+          cat container-data/file2.txt
+          cat container-data/initial.txt
+          
+          echo "✅ SUCCESS: Write to mounted directory works!"
+      
+      - name: Test 6 - Write with permissions
+        run: |
+          # Test writing with different permissions
+          podman run --rm \
+            -v $GITHUB_WORKSPACE:/workspace:Z \
+            alpine:latest \
+            sh -c "
+              touch /workspace/permission-test.txt
+              chmod 755 /workspace/permission-test.txt
+              echo 'Permission test' > /workspace/permission-test.txt
+              ls -la /workspace/permission-test.txt
+            "
+          
+          # Verify file exists and has content
+          if [ -f permission-test.txt ]; then
+            echo "✅ SUCCESS: Write with permissions works!"
+            cat permission-test.txt
+          else
+            echo "❌ FAILED: File not created"
+            exit 1
+          fi
+      
+      - name: Summary
+        run: |
+          echo "=========================================="
+          echo "✅ ALL WRITE TESTS PASSED!"
+          echo "=========================================="
+          echo ""
+          echo "The configuration supports writing to inner containers via:"
+          echo "  ✓ Volume mounts from workspace"
+          echo "  ✓ Container filesystem writes"
+          echo "  ✓ Podman volumes"
+          echo "  ✓ Image builds"
+          echo "  ✓ Mounted directories"
+          echo "  ✓ Permission changes"
+          echo ""
+          echo "Podman-in-Podman is fully functional for writes!"

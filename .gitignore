@@ -1,0 +1,15 @@
+# Ignore build artifacts
+*.tar.gz
+*.log
+
+# Ignore sensitive files
+.env
+*.token
+secrets/
+
+# Ignore Podman volumes
+podman-volumes/
+
+# OS files
+.DS_Store
+Thumbs.db
