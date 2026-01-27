@@ -129,7 +129,6 @@ Before deploying to production, verify:
 
 2. **Security**: Privileged mode has security implications. Only use in trusted environments.
 
-3. **Resource Usage**: Podman-in-Podman can be resource-intensive. Monitor CPU and memory usage.
 
 ## Future Improvements
 
