@@ -29,7 +29,6 @@ spec:
           # persistentVolumeClaim:
           #   claimName: podman-storage-pvc
       
-      volumeMounts:
       containers:
         - name: runner
           # Use your built image
