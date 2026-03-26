@@ -2,7 +2,7 @@
 
 ## ✅ YES - The Configuration Supports Writing to Inner Containers
 
-Your current `arc-runner-deployment.yaml` configuration **fully supports** writing to inner containers using podman-in-podman. Here's why:
+Your current `arc-runner-scale-set.yaml` (AutoscalingRunnerSet) configuration **fully supports** writing to inner containers using podman-in-podman. Here's why:
 
 ## Required Components - All Present ✅
 
@@ -231,6 +231,6 @@ All required components are present:
 
 ## Next Steps
 
-1. Deploy using `arc-runner-deployment.yaml`
+1. Deploy using `arc-runner-scale-set.yaml`
 2. Run the test workflow: `.github/workflows/test-write-to-inner-container.yml`
 3. Start using podman-in-podman with write operations in your workflows

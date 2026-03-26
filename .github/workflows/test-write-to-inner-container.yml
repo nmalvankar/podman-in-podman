@@ -5,11 +5,18 @@ on:
 
 jobs:
   test-writes:
-    runs-on: self-hosted
+    runs-on: [self-hosted, podman]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Show runner and ARC context
+        run: |
+          echo "Runner name: ${RUNNER_NAME:-unknown}"
+          echo "Runner workspace: ${GITHUB_WORKSPACE}"
+          echo "ACTIONS_RUNNER_INPUT_URL set: ${ACTIONS_RUNNER_INPUT_URL:+yes}"
+          echo "ACTIONS_RUNNER_INPUT_TOKEN set: ${ACTIONS_RUNNER_INPUT_TOKEN:+yes}"
+
       - name: Verify Podman is working
         run: |
           podman --version

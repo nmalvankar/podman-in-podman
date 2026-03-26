@@ -9,13 +9,13 @@
 FROM registry.redhat.io/ubi9/ubi:latest
 
 # Set environment variables
-ENV RUNNER_VERSION=2.311.0
+ENV RUNNER_VERSION=2.333.0
 ENV RUNNER_USER=runner
 ENV RUNNER_WORKDIR=/home/${RUNNER_USER}/actions-runner
 
 # Install dependencies including Podman
 RUN dnf update -y && dnf install -y \
-    curl \
+    curl-minimal \
     wget \
     git \
     jq \

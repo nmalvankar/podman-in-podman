@@ -2,7 +2,7 @@
 
 ## Review Summary
 
-This document reviews the ARC manifests (`arc-runner-deployment.yaml` and `arc-runner-scale-set.yaml`) for their ability to support writing to containers inside Podman (podman-in-podman).
+This document reviews the ARC AutoscalingRunnerSet manifest (`arc-runner-scale-set.yaml`) for its ability to support writing to containers inside Podman (podman-in-podman).
 
 ## ✅ Current Configuration Status
 
@@ -213,7 +213,7 @@ jobs:
 
 ## ✅ Conclusion
 
-**Both manifests are properly configured for writing to inner containers!**
+**The AutoscalingRunnerSet manifest is properly configured for writing to inner containers!**
 
 All required configurations are in place:
 - ✅ Privileged mode with all capabilities

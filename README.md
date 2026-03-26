@@ -124,11 +124,25 @@ See `.github/workflows/example-podman.yml` for an example GitHub Actions workflo
 
 Yes! This image is fully compatible with **Actions Runner Controller (ARC)** for running GitHub Actions runners in Kubernetes with Podman-in-Podman support.
 
+This project targets:
+- `actions/runner` version `2.333.0`
+- `actions-runner-controller` / `actions-runner-scaleset-controller` version `0.13.1`
+
 ### Prerequisites
 
 - Kubernetes cluster with ARC installed
 - Your custom runner image pushed to a container registry accessible by your cluster
 - GitHub App or Personal Access Token configured for ARC
+
+### Install ARC Scale Set Controller (v0.13.1)
+
+```bash
+# Install/upgrade gha-runner-scale-set-controller pinned to 0.13.1
+helm upgrade --install arc oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller \
+  --namespace actions-runner-system \
+  --create-namespace \
+  --version 0.13.1
+```
 
 ### Quick Start with ARC
 
@@ -139,15 +153,9 @@ Yes! This image is fully compatible with **Actions Runner Controller (ARC)** for
    podman push your-registry/github-actions-runner:latest
    ```
 
-2. **Deploy using RunnerDeployment:**
+2. **Deploy using AutoscalingRunnerSet (`actions-runner-scaleset-controller`):**
    ```bash
-   # Edit arc-runner-deployment.yaml with your image and repository
-   kubectl apply -f arc-runner-deployment.yaml
-   ```
-
-3. **Or deploy using RunnerScaleSet (recommended for newer ARC versions):**
-   ```bash
-   # Edit arc-runner-scale-set.yaml with your image and repository
+   # Edit arc-runner-scale-set.yaml with your image, githubConfigUrl, and githubConfigSecret
    kubectl apply -f arc-runner-scale-set.yaml
    ```
 
@@ -186,8 +194,7 @@ When using this image with ARC, you **must** configure the following in your ARC
 
 ### Example Files
 
-- `arc-runner-deployment.yaml` - Example RunnerDeployment manifest
-- `arc-runner-scale-set.yaml` - Example RunnerScaleSet manifest (newer ARC API)
+- `arc-runner-scale-set.yaml` - Example AutoscalingRunnerSet manifest (`actions.github.com` API)
 
 ### ARC Compatibility Notes
 
@@ -207,6 +214,25 @@ Once deployed, you can test Podman in your workflows:
     podman run --rm quay.io/podman/hello
     podman build -t test-image .
 ```
+
+### Validate This Version Upgrade
+
+After upgrading to:
+- `actions/runner` `2.333.0`
+- `actions-runner-controller` / `actions-runner-scaleset-controller` `0.13.1`
+
+run:
+
+```bash
+gh workflow run test-write-to-inner-container.yml
+```
+
+or trigger the workflow manually from GitHub Actions UI.  
+It verifies write operations for podman-in-podman via:
+- workspace volume writes
+- `podman exec` filesystem writes
+- Podman volume writes
+- image-build-time file writes
 
 ## Environment Variables
 

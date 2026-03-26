@@ -9,6 +9,10 @@ This guide provides step-by-step instructions for deploying this GitHub Actions 
 3. **Container Registry**: Access to push/pull container images
 4. **GitHub Authentication**: GitHub App or PAT configured in ARC
 
+Target versions used in this project:
+- `actions/runner` = `2.333.0`
+- `actions-runner-scaleset-controller` = `0.13.1`
+
 ## Step 1: Build and Push the Image
 
 ```bash
@@ -31,36 +35,31 @@ ARC needs to authenticate with GitHub. You can use either:
 
 See [ARC documentation](https://github.com/actions-runner-controller/actions-runner-controller) for authentication setup.
 
-## Step 3: Deploy Runner
-
-### Option A: RunnerDeployment (Static Runners)
-
-Edit `arc-runner-deployment.yaml`:
-
-```yaml
-spec:
-  template:
-    spec:
-      image: your-registry/github-actions-runner:latest  # Update this
-      repository: your-org/your-repo  # Update this
-```
-
-Apply:
+## Step 2.5: Install/Upgrade ARC Controller to v0.13.1
 
 ```bash
-kubectl apply -f arc-runner-deployment.yaml
+# Install or upgrade gha-runner-scale-set-controller pinned to 0.13.1
+helm upgrade --install arc oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller \
+  --namespace actions-runner-system \
+  --create-namespace \
+  --version 0.13.1
 ```
 
-### Option B: RunnerScaleSet (Auto-scaling Runners)
+## Step 3: Deploy Runner
+
+### Option: AutoscalingRunnerSet (Auto-scaling Runners, recommended)
 
 Edit `arc-runner-scale-set.yaml`:
 
 ```yaml
 spec:
+  githubConfigUrl: https://github.com/your-org/your-repo
+  githubConfigSecret: github-config-secret
   template:
     spec:
-      image: your-registry/github-actions-runner:latest  # Update this
-      repository: your-org/your-repo  # Update this
+      containers:
+        - name: runner
+          image: your-registry/github-actions-runner:latest  # Update this
 ```
 
 Apply:
@@ -76,7 +75,7 @@ kubectl apply -f arc-runner-scale-set.yaml
 kubectl get pods -n actions-runner-system
 
 # Check runner logs
-kubectl logs -n actions-runner-system -l runner-deployment=podman-runner-deployment
+kubectl logs -n actions-runner-system -l actions.github.com/scale-set-name=podman-runner-scale-set
 
 # Verify runner appears in GitHub
 # Go to: Repository → Settings → Actions → Runners
